@@ -3,3 +3,5 @@
 .idea/
 out
 daos.iml
+lib/
+*.iml

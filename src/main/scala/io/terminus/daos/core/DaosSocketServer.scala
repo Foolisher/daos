@@ -54,7 +54,7 @@ class DaosSocketServer {
 
                   while (line != null) {
                      if (line == "" || line == "EOF") {
-                        log.info(s"headers all got:${headers.toString()}")
+                        log.info(s"Headers => ${headers.toString()}")
                         if (headers(0).toUpperCase.startsWith("GET ")) {
 
                            val (context: String, env: Map[String, String]) = extractRequestContext(headers)
@@ -77,17 +77,10 @@ class DaosSocketServer {
                               .startJob(conf, env).toString.getBytes(Charset.forName("UTF-8"))
 
                         } else {
-                           out.write(
-                              """
-                                | *Bad command  Usage:
-                                |   GET <host>:<port>/job/somejobname?p1=v1&p2=v2  [Enter]
-                                | e.g. <host>:<port>/joblist   // to list job uri
-                              """.stripMargin.getBytes)
+                           out.write(note.getBytes)
                         }
 
-                        log.info("Read finish")
                         out.write("\nOK 200\n".getBytes)
-                        socket.close()
                         log.info(s"Close conn:[${socket.getRemoteSocketAddress}}]")
                         log.info(s"Request cost [${System.currentTimeMillis() - t}] ms")
                         return
@@ -98,7 +91,7 @@ class DaosSocketServer {
                   }
 
                } catch {
-                  case e: Exception => out.write((e + "\n").getBytes); log.error("Job Request fail", e)
+                  case e: Exception => out.write((e + s"\n$note").getBytes); log.error("Job Request fail", e)
                } finally {
                   in.close()
                   out.close()
@@ -113,6 +106,13 @@ class DaosSocketServer {
 
 
    }
+
+   val note="""
+              | *Bad command  Usage:
+              |   GET <host>:<port>/job/somejobname?p1=v1&p2=v2  [Enter]
+              | e.g. curl <host>:<port>/joblist   // to list job uri
+            """.stripMargin
+
 
    def extractRequestContext(headers: ArrayBuffer[String]): (String, Map[String, String]) = {
       val uri = headers(0).split("\\s+")(1)

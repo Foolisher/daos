@@ -43,7 +43,7 @@ class UserSummaryJob extends SparkJob {
       // ([channel], ([sumOfTotal], [sumOfSomeDay]))
       val rows = channelGroupedRDD.map { r =>
          (
-            r._2._2.channel match {case 1 => 0;case 2 => 0;case 3 => 1;case 4 => 1},
+            r._2._2.channel match {case 1|2 => 0; case 3|4 => 1},
             (if(r._2._1.createdAt<=sumFor) 1 else 0, if(r._2._1.createdAt==sumFor) 1 else 0)
          )
       }.reduceByKey((a,b)=>(a._1+b._1, a._2+b._2))
