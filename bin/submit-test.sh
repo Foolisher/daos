@@ -15,7 +15,7 @@ rm io.terminus.daos
 bin/spark-submit \
    --class io.terminus.daos.core.Bootstrap \
         /usr/dev/workspace/terminus-daos/lib/daos-all.jar \
-		 "local[2]" cassandra-node1
+		 "local[2]" wg-linux
 
 
 curl '10.0.0.8:9005/job/dealsummary?sumFor=2015-03-10&dataRoot=/tmp'

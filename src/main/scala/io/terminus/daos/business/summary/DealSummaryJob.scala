@@ -1,5 +1,6 @@
 package io.terminus.daos.business.summary
 
+import com.datastax.spark.connector.writer.{TimestampOption, WriteConf}
 import com.datastax.spark.connector.{SomeColumns, _}
 import io.terminus.daos.annotations.RequestMapping
 import io.terminus.daos.core.SparkJob
@@ -29,6 +30,7 @@ class DealSummaryJob extends SparkJob {
             OrderItem(row(1).toLong, row(0).toLong, row(7).toLong, row(15).toInt, row(17).toInt, row(21).split(" ")(0))
          }
          .filter(_.createdAt == env.getOrElse("sumFor", yesterday))
+         .cache()
 
       case class OrderPay(var orderId: Long, fee: Long, paidAt: String)
       val orderPayRDD = sc.textFile(s"${env.getOrElse("dataRoot", "/tmp")}/ecp_order_pays.csv")
@@ -38,6 +40,7 @@ class DealSummaryJob extends SparkJob {
                OrderPay(row(2).toLong, row(7).toLong, paidAt)
          }
          .filter(_.paidAt == env.getOrElse("sumFor", "/tmp"))
+         .cache()
 
 
       // 总订单数量(包含支付及未支付)
@@ -72,7 +75,7 @@ class DealSummaryJob extends SparkJob {
       sc.parallelize(Seq((env.getOrElse("sumFor", "/tmp"), gmv,   grossOrder,    grossItem,    deal,   perOrder,    dealOrder,    dealItem)))
          .saveToCassandra("groupon", "groupon_summary_deals",
                           SomeColumns("sum_for",          "gmv", "gross_order", "gross_item", "deal", "per_order", "deal_order", "deal_item"))
-
+      WriteConf(TimestampOption.)
       log.info("DealSummary job done!")
 
       "DealSummaryJob finished"

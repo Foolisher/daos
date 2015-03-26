@@ -1,6 +1,6 @@
 package io.terminus.daos.core
 
-import java.io.{BufferedReader, InputStreamReader}
+import java.io.{OutputStream, BufferedReader, InputStreamReader}
 import java.net.ServerSocket
 import java.nio.charset.Charset
 import java.util.concurrent.{Executors, ThreadFactory}
@@ -55,32 +55,21 @@ class DaosSocketServer {
                   while (line != null) {
                      if (line == "" || line == "EOF") {
                         log.info(s"Headers => ${headers.toString()}")
-                        if (headers(0).toUpperCase.startsWith("GET ")) {
 
-                           val (context: String, env: Map[String, String]) = extractRequestContext(headers)
-                           if(context=="/joblist"){
-                              out write JobsHolder.mappingClasses.keySet.toString().getBytes(Charset.forName("UTF-8"))
-                           }
-
-                           else
-                           out write JobsHolder.mappingClasses(context)
-                              .asInstanceOf[Class[SparkJob]]
-                              .newInstance
-                              .startJob(conf, env).toString.getBytes(Charset.forName("UTF-8"))
-
-                        } else if (headers(0).toUpperCase.startsWith("POST ")) {
-
-                           val (context: String, env: Map[String, String]) = extractRequestContext(headers)
-                           out write JobsHolder.mappingClasses(context)
-                              .asInstanceOf[Class[SparkJob]]
-                              .newInstance()
-                              .startJob(conf, env).toString.getBytes(Charset.forName("UTF-8"))
-
-                        } else {
-                           out.write(note.getBytes)
+                        headers(0).toUpperCase.split(" ")(0) match {
+                           case "GET"=>
+                              val (context: String, env: Map[String, String]) = extractRequestContext(headers)
+                              if(context=="/favicon.ico") return
+                              if(context=="/joblist")
+                                 out write JobsHolder.mappingClasses.keySet.toString().getBytes(Charset.forName("UTF-8"))
+                              else invokeSparkJob(conf, out, context, env)
+                           case "POST"=>
+                              val (context: String, env: Map[String, String]) = extractRequestContext(headers)
+                              invokeSparkJob(conf, out, context, env)
+                           case _=>
+                              out.write(note.getBytes)
                         }
-
-                        out.write("\nOK 200\n".getBytes)
+                        out.write("\n200 OK\n".getBytes)
                         log.info(s"Close conn:[${socket.getRemoteSocketAddress}}]")
                         log.info(s"Request cost [${System.currentTimeMillis() - t}] ms")
                         return
@@ -106,6 +95,14 @@ class DaosSocketServer {
 
 
    }
+
+   def invokeSparkJob(conf: SparkConf, out: OutputStream, context: String, env: Map[String, String]) {
+      out write JobsHolder.mappingClasses(context)
+         .asInstanceOf[Class[SparkJob]]
+         .newInstance
+         .startJob(conf, env).toString.getBytes(Charset.forName("UTF-8"))
+   }
+
 
    val note="""
               | *Bad command  Usage:
