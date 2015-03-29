@@ -3,7 +3,6 @@ package io.terminus.daos.business.summary
 import com.datastax.spark.connector._
 import io.terminus.daos.annotations.RequestMapping
 import io.terminus.daos.core.SparkJob
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 
@@ -16,9 +15,6 @@ import org.joda.time.DateTime
 @RequestMapping(value = "/job/usersummary")
 class UserSummaryJob extends SparkJob {
 
-   override def init(): SparkContext = {
-      new SparkContext(conf)
-   }
 
    case class User(var id: Long, var status: Int, var createdAt: String)
    case class UserProfile(var userId: Long, var channel: Int)

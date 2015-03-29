@@ -4,6 +4,7 @@
 rm io.terminus.daos
 bin/spark-submit \
    --class io.terminus.daos.core.Bootstrap \
+   --driver-class-path lib/mysql-connector-java-5.1.27.jar \
 	--jars /usr/dev/workspace/terminus-daos/lib/daos-all.jar \
 	/usr/dev/workspace/terminus-daos/target/daos-1.0-SNAPSHOT.jar \
 	 "local[2]" wg-linux

@@ -13,20 +13,20 @@ import sclasner.{FileEntry, Scanner}
  */
 object JobsHolder {
 
-   private def entryProcessor(acc: Seq[(String, String)], entry: FileEntry): Seq[(String, String)] = {
-      if (entry.relPath.startsWith("io/terminus/daos")) {
-         val fileName = entry.relPath.split(File.pathSeparator).last
-         if (fileName.contains("$")) acc
-         else acc :+(fileName.replace('/', '.').replace(".class", ""), "")
-      } else {
-         acc
-      }
-   }
+    private def entryProcessor(acc: Seq[(String, String)], entry: FileEntry): Seq[(String, String)] = {
+        if (entry.relPath.startsWith("io/terminus/daos")) {
+            val fileName = entry.relPath.split(File.pathSeparator).last
+            if (fileName.contains("$")) acc
+            else acc :+(fileName.replace('/', '.').replace(".class", ""), "")
+        } else {
+            acc
+        }
+    }
 
-   val mappingClasses = Scanner.foldLeft("/tmp/io.terminus.daos", Seq.empty, entryProcessor)
-      .map(Class forName _._1)
-      .filter(_.getAnnotation(classOf[RequestMapping]) != null)
-      .map { p => (p.getAnnotation(classOf[RequestMapping]).value(), p)}
-      .toMap[String, Class[_]]
+    val mappingClasses = Scanner.foldLeft("io.terminus.daos", Seq.empty, entryProcessor)
+        .map(Class forName _._1)
+        .filter(_.getAnnotation(classOf[RequestMapping]) != null)
+        .map { p => (p.getAnnotation(classOf[RequestMapping]).value(), p)}
+        .toMap[String, Class[_ <: SparkJob]]
 
 }

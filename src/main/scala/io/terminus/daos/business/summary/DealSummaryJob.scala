@@ -1,10 +1,8 @@
 package io.terminus.daos.business.summary
 
-import com.datastax.spark.connector.writer.{TimestampOption, WriteConf}
 import com.datastax.spark.connector.{SomeColumns, _}
 import io.terminus.daos.annotations.RequestMapping
 import io.terminus.daos.core.SparkJob
-import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.joda.time.DateTime
 
@@ -15,9 +13,6 @@ import org.joda.time.DateTime
 @RequestMapping(value = "/job/dealsummary")
 class DealSummaryJob extends SparkJob {
 
-   override def init(): SparkContext = {
-      new SparkContext(conf)
-   }
 
    override def execute(): AnyRef = {
       log.info(s"${getClass.getSimpleName} is starting...")
@@ -75,9 +70,7 @@ class DealSummaryJob extends SparkJob {
       sc.parallelize(Seq((env.getOrElse("sumFor", "/tmp"), gmv,   grossOrder,    grossItem,    deal,   perOrder,    dealOrder,    dealItem)))
          .saveToCassandra("groupon", "groupon_summary_deals",
                           SomeColumns("sum_for",          "gmv", "gross_order", "gross_item", "deal", "per_order", "deal_order", "deal_item"))
-      WriteConf(TimestampOption.)
       log.info("DealSummary job done!")
-
       "DealSummaryJob finished"
    }
 

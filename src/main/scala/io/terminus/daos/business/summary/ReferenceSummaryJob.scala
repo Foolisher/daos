@@ -3,7 +3,6 @@ package io.terminus.daos.business.summary
 import com.datastax.spark.connector.{SomeColumns, _}
 import io.terminus.daos.annotations.RequestMapping
 import io.terminus.daos.core.SparkJob
-import org.apache.spark.SparkContext
 import org.joda.time.DateTime
 
 /**
@@ -13,10 +12,6 @@ import org.joda.time.DateTime
 class ReferenceSummaryJob extends SparkJob {
 
    import org.apache.spark.SparkContext._
-
-   override def init(): SparkContext = {
-      new SparkContext(conf)
-   }
 
    override def execute(): AnyRef = {
       log.info(s"${getClass.getSimpleName} is starting...")
