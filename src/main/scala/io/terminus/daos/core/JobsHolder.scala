@@ -25,8 +25,8 @@ object JobsHolder {
 
     val mappingClasses = Scanner.foldLeft("io.terminus.daos", Seq.empty, entryProcessor)
         .map(Class forName _._1)
-        .filter(_.getAnnotation(classOf[RequestMapping]) != null)
-        .map { p => (p.getAnnotation(classOf[RequestMapping]).value(), p)}
-        .toMap[String, Class[_ <: SparkJob]]
+        .filter{ p => classOf[SparkJob].isAssignableFrom(p) && p.getAnnotation(classOf[RequestMapping]) != null }
+        .map{ p => (p.getAnnotation(classOf[RequestMapping]).value(), p)}
+        .toMap[String, Class[_]]
 
 }

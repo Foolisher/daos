@@ -1,7 +1,7 @@
 package io.terminus.daos.core
 
-import java.io.{BufferedReader, InputStreamReader, OutputStream}
-import java.net.ServerSocket
+import java.io.{BufferedReader, InputStreamReader}
+import java.net.{InetSocketAddress, ServerSocket}
 import java.nio.charset.Charset
 import java.util.concurrent.{Executors, ThreadFactory}
 
@@ -36,8 +36,9 @@ class DaosSocketServer {
 
     def bootstrap(conf: SparkConf) = {
 
-        val serverSocket = new ServerSocket(9005)
-        log.info(s"Spark driver HOST:[${serverSocket.getInetAddress.getHostAddress}]")
+        val serverSocket = new ServerSocket()
+        serverSocket.bind(new InetSocketAddress("0.0.0.0", 9005))
+        log.info(s"Spark driver api host:[${serverSocket.getInetAddress.getHostAddress}:9005]")
 
         while (true) {
 
@@ -51,25 +52,26 @@ class DaosSocketServer {
                     val in = new BufferedReader(new InputStreamReader(socket.getInputStream))
                     val out = socket.getOutputStream
 
-                    try {
+                    try{
 
                         val headers = new ArrayBuffer[String]()
                         var line = in.readLine()
                         headers.append(line)
 
+                        // handle request(tcp|socket|http)
                         var result = ""
                         while (line != null) {
                             if (line == "" || line == "EOF") {
                                 log.info(s"Headers => ${headers.toString()}")
                                 headers(0).toUpperCase.split(" ")(0) match {
                                     case "GET" | "POST" =>
-                                        val (context: String, env: Map[String, String]) = extractRequestContext(headers)
-                                        if (urlMapping.contains(context))
-                                            result = urlMapping(context).apply()
+                                        val (path: String, env: Map[String, String]) = extractRequestContext(headers)
+                                        if (urlMapping.contains(path))
+                                            result = urlMapping(path)()
                                         else {
                                             val data = handlePostData(in, headers)
                                             log.info(s"Mixed post data: $data")
-                                            result = ok_header + invokeSparkJob(conf, out, context, if (data.isEmpty) env else data ++ env)
+                                            result = ok_header + invokeSparkJob(conf, path, if (data.isEmpty) env else data ++ env)
                                         }
                                     case _ =>
                                         result = ok_header + note
@@ -94,7 +96,6 @@ class DaosSocketServer {
                         socket.close()
                     }
 
-
                 }
             })
 
@@ -102,20 +103,23 @@ class DaosSocketServer {
 
     }
 
-    def invokeSparkJob(conf: SparkConf, out: OutputStream, context: String, env: Map[String, String]): String = {
-        JobsHolder.mappingClasses(context)
+
+    /**
+     * invoke uri mapping associated job instance
+     * @param conf  global spark conf
+     * @param path  request path e.g. /joblist
+     * @param env   mapped client request parameters
+     * @return      job execute result
+     */
+    def invokeSparkJob(conf: SparkConf, path: String, env: Map[String, String]): String = {
+        JobsHolder.mappingClasses(path)
             .newInstance
+            .asInstanceOf[SparkJob]
             .startJob(conf, env).toString
     }
 
 
-    val note = """
-                 | Bad command  Usage:
-                 |   GET <host>:<port>/job/somejobname?p1=v1&p2=v2  [Enter]
-                 | e.g. curl <host>:<port>/joblist   // to list job uri
-               """.stripMargin
-
-
+    // parse http protocol headers
     def extractRequestContext(headers: ArrayBuffer[String]): (String, Map[String, String]) = {
         val uri = headers(0).split("\\s+")(1)
         val parts = uri.split("\\?")
@@ -128,13 +132,14 @@ class DaosSocketServer {
         (context, map)
     }
 
+    // pre-handle uris
     val urlMapping =
         Map(
-            "/joblist" -> { () => ok_header + JobsHolder.mappingClasses.keySet.toString()},
-            "/favicon.ico" -> { () => ok_header}
+            "/joblist"      -> { () => ok_header + JobsHolder.mappingClasses.keySet.toString()},
+            "/favicon.ico"  -> { () => ok_header}
         )
 
-
+    // parse post data as K/V parameters
     def handlePostData(in: BufferedReader, headers: ArrayBuffer[String]): Map[String, String] = {
         var len = 0
         for (h <- headers if h.startsWith("Content-Length"))
@@ -147,5 +152,10 @@ class DaosSocketServer {
         JsonMethods.parse(new String(buf)).extract[Map[String, String]]
     }
 
+    val note = """
+                 | Bad command  Usage:
+                 |   GET <host>:<port>/job/somejobname?p1=v1&p2=v2  [Enter]
+                 | e.g. curl <spark-host>:<port>/joblist   // to list job uri
+               """.stripMargin
 
 }

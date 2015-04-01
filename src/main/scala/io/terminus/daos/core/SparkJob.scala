@@ -1,7 +1,5 @@
 package io.terminus.daos.core
 
-import java.util.concurrent.atomic.AtomicBoolean
-
 import akka.event.slf4j.Logger
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -15,8 +13,6 @@ import org.apache.spark.{SparkConf, SparkContext}
 trait SparkJob extends Serializable {
 
     val log = Logger.apply(getClass.getSimpleName)
-
-    val running = new AtomicBoolean(false)
 
     @transient
     var conf: SparkConf    = _
@@ -32,11 +28,9 @@ trait SparkJob extends Serializable {
      * @return the job result
      */
     final def startJob(conf: SparkConf, env: Map[String, String]): AnyRef = {
-        if (running.get()) return "Job [" + getClass.getSimpleName + "] is running"
-        running.set(true)
         this.conf = conf
         this.env = env
-        this.sc = new SparkContext()
+        this.sc = new SparkContext(conf)
         try {
             execute()
         }
