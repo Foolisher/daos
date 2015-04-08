@@ -25,11 +25,9 @@ class DaosSocketServer {
 
     val log = LoggerFactory.getLogger(getClass)
 
-    var id        = 0
-    val executors = Executors.newFixedThreadPool(4, new ThreadFactory {
+    val acceptor = Executors.newSingleThreadExecutor(new ThreadFactory {
         override def newThread(r: Runnable): Thread = {
-            id += 1
-            new Thread(r, s"DaosSocketServer thread:[#$id]")
+            new Thread(r, s"DaosSocketServer thread")
         }
     })
 
@@ -45,7 +43,7 @@ class DaosSocketServer {
             val socket = serverSocket.accept()
             val t = System.currentTimeMillis()
 
-            executors.execute(new Runnable {
+            acceptor.execute(new Runnable {
                 override def run(): Unit = {
                     log.info(s"New client:[${socket.getRemoteSocketAddress}] -- ${Thread.currentThread().getName}")
 
@@ -112,10 +110,29 @@ class DaosSocketServer {
      * @return      job execute result
      */
     def invokeSparkJob(conf: SparkConf, path: String, env: Map[String, String]): String = {
-        JobsHolder.mappingClasses(path)
-            .newInstance
-            .asInstanceOf[SparkJob]
-            .startJob(conf, env).toString
+        // spark default return result immediately
+        env.getOrElse("async", "false") match {
+            case "false" =>
+                JobsHolder.mappingClasses(path)
+                    .newInstance
+                    .asInstanceOf[SparkJob]
+                    .startJob(conf, env).toString
+            case _ =>
+                Bootstrap.singleExecutor.execute(new Runnable {
+                    override def run(): Unit = {
+                        try {
+                            JobsHolder.mappingClasses(path)
+                                .newInstance
+                                .asInstanceOf[SparkJob]
+                                .startJob(conf, env).toString
+                        } catch {
+                            case e: Exception => log.error("job execution error", e)
+                        }
+                    }
+                })
+                "PROCESSING"
+        }
+
     }
 
 

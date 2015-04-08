@@ -21,7 +21,7 @@ scp admin@mysql001:/tmp/${TABLE}.csv /tmp/${TABLE}.csv
 ssh admin@mysql001 '[ -f /tmp/${TABLE}.csv ] && sudo rm /tmp/${TABLE}.csv'
 #ssh admin@mysql001 'ssh admin@mysql002 "[ -f ${FILE} ] && rm ${FILE}" '
 
-echo -e "\033[32;1m Table[${TABLE}] downloaded to /tmp/${TABLE}.csv\033[m"
+#echo -e "\033[32;1m Table[${TABLE}] downloaded to /tmp/${TABLE}.csv\033[m"
 
 done
 

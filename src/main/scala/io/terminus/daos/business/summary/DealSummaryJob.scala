@@ -33,9 +33,9 @@ class DealSummaryJob extends SparkJob {
         // 总订单数量(包含支付及未支付)
         val grossOrder = orderItems.map(p => (p.orderId, 1)).countByKey().size
         // 总订单中商品数量(包含支付及未支付)
-        val grossItem = orderItems.map(_.quantity).reduce(_ + _)
+        val grossItem = orderItems.map(_.quantity).sum()
         // 总订单产生的金额(包含支付及未支付)
-        val gmv = orderItems.map(_.fee).reduce(_ + _)
+        val gmv = orderItems.map(_.fee).sum()
 
 
         val paidOrderItems = orderItems.filter(o => o.status != -6 && o.status != -7 && o.status != 0).cache()

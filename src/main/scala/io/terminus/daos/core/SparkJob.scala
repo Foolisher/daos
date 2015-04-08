@@ -33,8 +33,7 @@ trait SparkJob extends Serializable {
         this.sc = new SparkContext(conf)
         try {
             execute()
-        }
-        finally sc.stop()
+        } finally sc.stop()
     }
 
 

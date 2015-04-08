@@ -1,6 +1,6 @@
 package io.terminus.daos.core
 
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{ThreadFactory, Executors, TimeUnit}
 
 import akka.event.slf4j.Logger
 import org.apache.spark.SparkConf
@@ -15,6 +15,12 @@ object Bootstrap {
 
     val log = Logger.apply("Bootstrap")
 
+    val singleExecutor = Executors.newSingleThreadExecutor(new ThreadFactory {
+        override def newThread(r: Runnable): Thread = {
+            new Thread(r, s"SparkJob executor")
+        }
+    })
+
     def main(args: Array[String]) {
 
         log.info("Launching spark job")
@@ -24,7 +30,7 @@ object Bootstrap {
 
                 while (true) {
                     try {
-                        log.info("tel alive"); TimeUnit.MINUTES.sleep(3)
+                        log.info("tell alive"); TimeUnit.MINUTES.sleep(3)
                     } catch {
                         case e: Exception => log.error("Interrupted exception", e)
                     }
